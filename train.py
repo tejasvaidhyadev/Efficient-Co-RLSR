@@ -74,27 +74,22 @@ def load_housing( dataset_path, multiReg = False):
     X2_train = X[:400,7:13]
     unseen_point = X[400:,:13]
     X1_test = X[480:,:6]
-    X2_test = X[480:,6:13]
+    X2_test = X[480:,7:13]
     Y_test = Y[480:]
     return X1_train,X2_train, Y_train, X1_test,X2_test, Y_test, unseen_point
 
 def test(model,model2, test_instance1,test_instance2,Y_test, criterion ,optimizer, restore_dir=None):
     with torch.no_grad(): # we don't need gradients in the testing phase
-        if torch.cuda.is_available():
-            predicted = model(Variable(torch.from_numpy(test_instance1).cuda())).cpu().data.numpy()
-        else:
-            predicted = model(Variable(torch.from_numpy(test_instance1.astype(np.float32)))).data.numpy()
+        predicted = model(test_instance1)
     #print(predicted)
     with torch.no_grad(): # we don't need gradients in the testing phase
-        if torch.cuda.is_available():
-            predicted2 = model2(Variable(torch.from_numpy(test_instance2).cuda())).cpu().data.numpy()
-        else:
-            predicted2 = model2(Variable(torch.from_numpy(test_instance2.astype(np.float32)))).data.numpy()
-    L1 = criterion(Variable(torch.from_numpy(predicted2)),Variable(torch.from_numpy(Y_test.astype(np.float32))))
-    L2 =criterion(Variable(torch.from_numpy(predicted)),Variable(torch.from_numpy(Y_test.astype(np.float32))))
+        predicted2 = model2(test_instance2)
+    
+    L1 = criterion(predicted2,Y_test)
+    L2 =criterion(predicted,Y_test)
     total_error = (L1 + L2)/2
     print(total_error)
-    logging.info("combine-rms: {:05.2f}".format(total_error))
+    logging.info("combine-rms on test set: {:05.2f}".format(total_error))
     print("done")
 
 if (__name__ == "__main__"):
@@ -154,13 +149,25 @@ if (__name__ == "__main__"):
         inputs_instance2 = Variable(torch.from_numpy(X2_train.astype(np.float32)).cuda())
         labels_instance2 = Variable(torch.from_numpy(Y_train.astype(np.float32)).cuda())
         unknow_point = Variable(torch.from_numpy(unseen_point.astype(np.float32)).cuda())
+        test_instance1 = Variable(torch.from_numpy(X1_test.astype(np.float32)).cuda())
+        test_instance2 = Variable(torch.from_numpy(X2_test.astype(np.float32)).cuda())
+        Y_test = Variable(torch.from_numpy(Y_test.astype(np.float32)).cuda())
+
+        
+        
+
     else:
         inputs_instance1 = Variable(torch.from_numpy(X1_train.astype(np.float32)))
         labels_instance1 = Variable(torch.from_numpy(Y_train.astype(np.float32)))
         inputs_instance2 = Variable(torch.from_numpy(X2_train.astype(np.float32)))
         labels_instance2 = Variable(torch.from_numpy(Y_train.astype(np.float32)))
         unknow_point = Variable(torch.from_numpy(unseen_point.astype(np.float32)))
+        test_instance1 = Variable(torch.from_numpy(X1_test.astype(np.float32)))
+        test_instance2 = Variable(torch.from_numpy(X2_test.astype(np.float32)))
+        Y_test = Variable(torch.from_numpy(Y_test.astype(np.float32)))
 
     # Train and evaluate the model
     logging.info("Starting training for {} epoch(s)".format(args.epochs))
     train(model,model2, inputs_instance1,inputs_instance2,labels_instance1,labels_instance2,epochs, criterion ,optimizer, restore_dir=None)
+    logging.info("Starting testing for epoch(s)")    
+    test(model,model2, test_instance1,test_instance2,Y_test, criterion ,optimizer, restore_dir=None)
