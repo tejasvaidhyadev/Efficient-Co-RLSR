@@ -28,7 +28,6 @@ parser.add_argument('--outputDim', type=int, default=1, help="provides outputdim
 
 parser.add_argument('--learningRate',type=int,default=0.001, help="define the learningrate")
 parser.add_argument("--epochs", type=int,default=100, help="Number of Epoches")
-parser.add_argument("--no_out", type = int, default=1, help= "specify the number of output in case of multi-Reg")
 parser.add_argument("--test_trainsplit", default=0.3)
 parser.add_argument("--batch_size",type=int, default=32)
 
@@ -55,6 +54,7 @@ def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, crit
     # get loss for the predicted output
 
             loss1 = criterion(outputs1, _y1)+criterion(outputs2, _y2)
+            
             l2_reg = torch.tensor(0.)
             for param in chain(model.parameters(), model2.parameters()):
                 l2_reg += torch.norm(param)
@@ -82,7 +82,8 @@ def load_datafile( dataset_path, multiReg = 1):
     D = np.loadtxt(dataset_path)
     np.random.shuffle(D)
     X = D[:,:-(multiReg)] 
-    Y = D[:,-(multiReg)]
+    Y = D[:,-(multiReg):]
+    print(Y.shape)
     return X,Y
 
 
@@ -131,17 +132,18 @@ if (__name__ == "__main__"):
     # Initialize the DataLoader
     data_dir = args.dataset
 
-    X, Y = load_datafile(args.dataset, args.no_out)
+    X, Y = load_datafile(args.dataset, args.outputDim)
 
     # collecting indices for test and train sets
     train, test = train_test_split(list(range(X.shape[0])), test_size=args.test_trainsplit)
     
     # need to automate for random points
+    
     X1 = X[:,:6]
-    Y = Y[:]
+    #Y = Y[:]
     X2 = X[:,7:]
     unseen_point = X[:,:]
-    
+    #print(Y.shape)
 
     ds1 = PrepareData(X1, y=Y, scale_X=True)
     ds2 = PrepareData(X2, y=Y, scale_X=True)
