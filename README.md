@@ -14,7 +14,7 @@ The model will take last ```outputDim``` as target labels
 Implements the linear RSE
 
 ### TODO
--[] Model stroing in restor_dir 
--[] Making M parametric and randomly division of attributes
--[] adding other kernals 
+-[ ] Model stroing in restor_dir 
+-[ ] Making M parametric and randomly division of attributes
+-[ ] adding other kernals 
 
