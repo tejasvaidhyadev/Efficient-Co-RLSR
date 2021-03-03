@@ -2,7 +2,7 @@
 Contains  implementation of  Efficent Co-RLSR
 
 ### Training 
-run
+run the below line
 ```
 python train.py --dataset <path_to_dataset> --epochs <no of epochs>
 ```
@@ -14,7 +14,8 @@ The model will take last ```outputDim``` as target labels
 Implements the linear RSE
 
 ### TODO
--[ ] Model stroing in restor_dir 
--[ ] Making M parametric and randomly division of attributes
--[ ] adding other kernals 
+-[ ] Model stroing in restor_dir  
+-[ ] Making M parametric and randomly division of attributes  
+-[ ] adding other kernals  
+
 
