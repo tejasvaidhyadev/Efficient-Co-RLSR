@@ -75,9 +75,9 @@ def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, crit
             all_losses.append(loss.item())
 
         #print(batch_losses)
-        meanbatchloss = np.sqrt(np.mean(batch_losses)).round(3)
-        logging.info("co-RMS-loss: {:05.2f}".format(meanbatchloss))
-    logging.info("Training completed for printing loss uncomment 75 and 76 linn in train.")
+        #meanbatchloss = np.sqrt(np.mean(batch_losses)).round(3)
+        #logging.info("co-RMS-loss: {:05.2f}".format(meanbatchloss))
+    logging.info("Training completed for printing loss uncomment 78 and 79(the above to line) linn in train.")
         #print('epoch {}, loss {}'.format(epoch, meanbatchloss/2))
         # to keep the loss fair divide by m
         ## avoiding m factor in batch loss
@@ -98,7 +98,6 @@ def load_datafile( dataset_path, multiReg = 1):
     np.random.shuffle(D)
     X = D[:,:-(multiReg)] 
     Y = D[:,-(multiReg):]
-    print(Y.shape)
     return X,Y
 
 
@@ -206,6 +205,8 @@ if (__name__ == "__main__"):
 
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.SGD(chain(model.parameters(), model2.parameters()), lr=learningRate)
+
+    logging.info("File name {}".format(data_dir.split('/')[-1]))
 
     # Train and evaluate the model
     logging.info("Starting training for {} epoch(s)".format(args.epochs))
