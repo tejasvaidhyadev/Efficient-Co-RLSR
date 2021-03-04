@@ -21,6 +21,9 @@ from model import linearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
+import csv
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default='dataset/housing.data', help="Directory containing the dataset")
 parser.add_argument('--seed', type=int, default=2019, help="random seed for initialization")
@@ -28,10 +31,10 @@ parser.add_argument('--restore_dir', default=None,
                     help="Optional, name of the directory containing weights to reload before training, e.g., 'experiments/")
 parser.add_argument('--outputDim', type=int, default=1, help="provides outputdimension")
 
-parser.add_argument('--learningRate',type=int,default=0.0001, help="define the learningrate")
+parser.add_argument('--learningRate',type=int,default=0.0005, help="define the learningrate")
 parser.add_argument("--epochs", type=int,default=100, help="Number of Epoches")
 parser.add_argument("--test_trainsplit", default=0.3)
-parser.add_argument("--batch_size",type=int, default=32)
+parser.add_argument("--batch_size",type=int, default=64)
 
 # for now we are not storing pretrained weigths
 def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, criterion ,optimizer, restore_dir=None):
@@ -59,7 +62,7 @@ def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, crit
             l2_reg = torch.tensor(0.)
             for param in chain(model.parameters(), model2.parameters()):
                 l2_reg += torch.norm(param)
-            loss = loss1+ 1 * l2_reg + 0.0001*(criterion(model(unknow_point[:100,:len(_X1[1])]), model2(unknow_point[:100,-(len(_X2[1])):]))) #co-regularsation term
+            loss = loss1+ 1 * l2_reg + 0.01*(criterion(model(unknow_point[:100,:len(_X1[1])]), model2(unknow_point[:100,-(len(_X2[1])):]))) #co-regularsation term
         
         #nn.utils.clip_grad_norm_(parameters=chain(model.parameters(), model2.parameters()), max_norm=params.clip_grad) 
         #adding loss for each functions 
@@ -74,7 +77,7 @@ def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, crit
         #print(batch_losses)
         meanbatchloss = np.sqrt(np.mean(batch_losses)).round(3)
         logging.info("co-RMS-loss: {:05.2f}".format(meanbatchloss))
-        
+    logging.info("Training completed for printing loss uncomment 75 and 76 linn in train.")
         #print('epoch {}, loss {}'.format(epoch, meanbatchloss/2))
         # to keep the loss fair divide by m
         ## avoiding m factor in batch loss
@@ -82,7 +85,16 @@ def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, crit
 
 def load_datafile( dataset_path, multiReg = 1):
     np.random.seed(1)
-    D = np.loadtxt(dataset_path)
+    
+    try:
+        D = np.loadtxt(dataset_path)
+    except:
+            D = np.genfromtxt(dataset_path, delimiter=",", filling_values=np.nan)
+    #D = np.loadtxt(dataset_path)
+            col_mean = np.nanmean(D, axis = 0) 
+            inds = np.where(np.isnan(D))
+            D[inds] = np.take(col_mean, inds[1])
+
     np.random.shuffle(D)
     X = D[:,:-(multiReg)] 
     Y = D[:,-(multiReg):]
@@ -147,10 +159,13 @@ if (__name__ == "__main__"):
     
     # need to automate for random points
     n = random.randint(1,len(X[0]))
+    print("split of attribute at")
+    print(n)
     #print(n)
     X1 = X[:,:n]
     X2 = X[:,n:]
     unseen_point = X[:,:]
+    unseen_point = StandardScaler().fit_transform(unseen_point)
 
     ds1 = PrepareData(X1, y=Y, scale_X=True)
     ds2 = PrepareData(X2, y=Y, scale_X=True)
