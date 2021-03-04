@@ -1,10 +1,10 @@
 # Efficient-Co-RLSR
 Contains  implementation of  Efficent Co-RLSR  
 Paper: [link](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.68.7014&rep=rep1&type=pdf)  
-Processed dataset: ./dataset/  
+Processed dataset provided at: ./dataset/  
 
 ### Training 
-run the below line
+Run the below line
 ```
 python train.py --dataset <path_to_dataset> --epochs <no of epochs>
 ```
@@ -13,7 +13,7 @@ python train.py --dataset <path_to_dataset> --epochs <no of epochs>
 The model will take last ```outputDim``` as target labels
 
 ### Baseline 
-Implements the linear RSE(Ridge regression)
+Implements the RSE (also known as Ridge regression)
 
 ### Example
 Step1: keep the processed dataset file at ./dataset with last column corresponds to target label  
