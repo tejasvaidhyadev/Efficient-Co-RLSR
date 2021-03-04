@@ -1,7 +1,7 @@
 # Efficient-Co-RLSR
-Contains  implementation of  Efficent Co-RLSR
-Paper: [link](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.68.7014&rep=rep1&type=pdf)
-Processed dataset: ./dataset/
+Contains  implementation of  Efficent Co-RLSR  
+Paper: [link](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.68.7014&rep=rep1&type=pdf)  
+Processed dataset: ./dataset/  
 
 ### Training 
 run the below line
