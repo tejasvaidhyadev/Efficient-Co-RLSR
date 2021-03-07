@@ -42,5 +42,6 @@ baseline loss on test: 89.166
 ### Results
 Results: [link](https://docs.google.com/document/d/17BtTTLGRWsAMNoZkYNj13UZ1iDSJ96VNql0TteO5lFA/edit?usp=sharing)
 
-
-
+### TODO
+-[ ] statistical significance test
+-[ ] better validation 
