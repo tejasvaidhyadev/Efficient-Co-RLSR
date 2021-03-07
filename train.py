@@ -124,7 +124,10 @@ def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, y_mean,
         L2 =criterion(predicted2,_y2)
         total_error = (L1 + L2)/2
         #loss_avg.update(total_error.item())
-        all_losses.append(total_error.item()/y_mean)
+        all_losses.append(total_error.item())
+    print("y_mean")
+    print(y_mean)
+
     meanbatchloss = np.sqrt(np.mean(all_losses)).round(3)
     normalised_rmse = np.sqrt(np.mean(all_losses)).round(3)/y_mean
     
