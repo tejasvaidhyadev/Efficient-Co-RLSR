@@ -101,7 +101,7 @@ def load_datafile( dataset_path, multiReg = 1):
     return X,Y
 
 
-def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore_dir=None):
+def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, y_mean, restore_dir=None):
     
     model.eval()
     model2.eval()
@@ -124,13 +124,13 @@ def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore
         L2 =criterion(predicted2,_y2)
         total_error = (L1 + L2)/2
         #loss_avg.update(total_error.item())
-        all_losses.append(total_error.item())
-    
+        all_losses.append(total_error.item()/y_mean)
     meanbatchloss = np.sqrt(np.mean(all_losses)).round(3)
+    normalised_rmse = np.sqrt(np.mean(all_losses)).round(3)/y_mean
     
     #print(total_error)
     logging.info("combine-rms on test set: {:05.2f}".format(meanbatchloss))
-    
+    logging.info("Normalised RMSE: {:05.2f}".format(normalised_rmse))
     print("done")
 
 if (__name__ == "__main__"):
@@ -153,6 +153,7 @@ if (__name__ == "__main__"):
     data_dir = args.dataset
 
     X, Y = load_datafile(args.dataset, args.outputDim)
+    y_mean = torch.mean(torch.from_numpy(Y))
     # collecting indices for test and train sets
     train_idx, test_idx = train_test_split(list(range(X.shape[0])), test_size=args.test_trainsplit)
     
@@ -212,6 +213,6 @@ if (__name__ == "__main__"):
     logging.info("Starting training for {} epoch(s)".format(args.epochs))
     train_epoches(model,model2, train_set1,train_set2, unseen_point, epochs, criterion ,optimizer, restore_dir=None)
     logging.info("Starting testing for epoch(s)")    
-    test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore_dir=None)
+    test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer,y_mean, restore_dir=None)
 
-    baseline_linear(X, Y,epochs,batch_size,learningRate, criterion ,outputDim, args.test_trainsplit)
+    baseline_linear(X, Y,y_mean ,epochs,batch_size,learningRate, criterion ,outputDim, args.test_trainsplit)

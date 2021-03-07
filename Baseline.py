@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split
 
 
 
-def baseline_linear( X, Y,num_epochs,batch_size,learningRate, criterion ,output, test_size ):
+def baseline_linear( X, Y, y_mean, num_epochs,batch_size,learningRate, criterion ,output, test_size ):
     
     trainbase, testbase = train_test_split(list(range(X.shape[0])), test_size=test_size)
     ds = PrepareData(X, y=Y, scale_X=True)
@@ -90,5 +90,6 @@ def baseline_linear( X, Y,num_epochs,batch_size,learningRate, criterion ,output,
         #print("Batch loss on test: {}".format(test_loss.item()))
         #loss_avg.update(test_loss.item())
     meanbatchloss_test = np.sqrt(np.mean(batch_losses)).round(3)
+    normalised_rmse = meanbatchloss_test/y_mean
     logging.info("baseline loss on test: {}".format(meanbatchloss_test)) 
-
+    logging.info("Normalised RMSE: {:05.2f}".format(normalised_rmse))
