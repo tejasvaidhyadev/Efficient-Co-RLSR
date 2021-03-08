@@ -26,7 +26,7 @@ import csv
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default='dataset/housing.data', help="Directory containing the dataset")
-parser.add_argument('--seed', type=int, default=2018, help="random seed for initialization")
+parser.add_argument('--seed', type=int, default=2016, help="random seed for initialization")
 parser.add_argument('--restore_dir', default=None,
                     help="Optional, name of the directory containing weights to reload before training, e.g., 'experiments/")
 parser.add_argument('--outputDim', type=int, default=1, help="provides outputdimension")
@@ -156,7 +156,10 @@ if (__name__ == "__main__"):
     data_dir = args.dataset
 
     X, Y = load_datafile(args.dataset, args.outputDim)
-    y_mean = torch.mean(torch.from_numpy(Y))
+    ymin = torch.from_numpy(Y.min(axis=0))
+    ymax = torch.from_numpy(Y.max(axis=0))
+    y_mean = ymax-ymin
+    y_mean=y_mean.item()
     # collecting indices for test and train sets
     train_idx, test_idx = train_test_split(list(range(X.shape[0])), test_size=args.test_trainsplit)
     
