@@ -26,7 +26,7 @@ import csv
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default='dataset/housing.data', help="Directory containing the dataset")
-parser.add_argument('--seed', type=int, default=2016, help="random seed for initialization")
+parser.add_argument('--seed', type=int, default=2018, help="random seed for initialization")
 parser.add_argument('--restore_dir', default=None,
                     help="Optional, name of the directory containing weights to reload before training, e.g., 'experiments/")
 parser.add_argument('--outputDim', type=int, default=1, help="provides outputdimension")
@@ -47,19 +47,27 @@ def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, crit
         # get output from the model, given the inputs
         batch_losses = []
         for ix, ((Xb1, yb1), (Xb2, yb2)) in enumerate(zip(train_set1,train_set2)):
-
-            _X1 = Variable(Xb1).float()
-            _y1 = Variable(yb1).float()
-            _X2 = Variable(Xb2).float()
-            _y2 = Variable(yb2).float()
+            if torch.cuda.is_available():
+                _X1 = Variable(Xb1).float().cuda()
+                _y1 = Variable(yb1).float().cuda()
+                _X2 = Variable(Xb2).float().cuda()
+                _y2 = Variable(yb2).float().cuda()
+            else:
+                _X1 = Variable(Xb1).float()
+                _y1 = Variable(yb1).float()
+                _X2 = Variable(Xb2).float()
+                _y2 = Variable(yb2).float()
             
             outputs1 = model(_X1)
             outputs2 = model2(_X2)
             # get loss for the predicted output
 
             loss1 = criterion(outputs1, _y1)+criterion(outputs2, _y2)
-            
-            l2_reg = torch.tensor(0.)
+            if torch.cuda.is_available():
+                l2_reg = torch.tensor(0.).cuda()
+            else:
+                l2_reg = torch.tensor(0.)
+
             for param in chain(model.parameters(), model2.parameters()):
                 l2_reg += torch.norm(param)
             loss = loss1+ 1 * l2_reg + 1*(criterion(model(unknow_point[:100,:len(_X1[1])]), model2(unknow_point[:100,-(len(_X2[1])):]))) #co-regularsation term
@@ -101,7 +109,7 @@ def load_datafile( dataset_path, multiReg = 1):
     return X,Y
 
 
-def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, y_mean, restore_dir=None):
+def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore_dir=None):
     
     model.eval()
     model2.eval()
@@ -109,15 +117,20 @@ def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, y_mean,
 
     for (Xb1, yb1),(Xb2 , yb2) in zip(test_set1,test_set2):
 
-        _X1 = Variable(Xb1).float()
-        _y1 = Variable(yb1).float()
-        _X2 = Variable(Xb2).float()
-        _y2 = Variable(yb2).float()
+        if torch.cuda.is_available():
+            _X1 = Variable(Xb1).float().cuda()
+            _y1 = Variable(yb1).float().cuda()
+            _X2 = Variable(Xb2).float().cuda()
+            _y2 = Variable(yb2).float().cuda()
+        else:
+            _X1 = Variable(Xb1).float()
+            _y1 = Variable(yb1).float()
+            _X2 = Variable(Xb2).float()
+            _y2 = Variable(yb2).float()
+
 
         with torch.no_grad(): # we don't need gradients in the testing phase
             predicted = model(_X1)
-
-        with torch.no_grad(): # we don't need gradients in the testing phase
             predicted2 = model2(_X2)
     
         L1 = criterion(predicted,_y1)
@@ -125,15 +138,12 @@ def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, y_mean,
         total_error = (L1 + L2)/2
         #loss_avg.update(total_error.item())
         all_losses.append(total_error.item())
-    print("y_mean")
-    print(y_mean)
-
+    
     meanbatchloss = np.sqrt(np.mean(all_losses)).round(3)
-    normalised_rmse = np.sqrt(np.mean(all_losses)).round(3)/y_mean
     
     #print(total_error)
     logging.info("combine-rms on test set: {:05.2f}".format(meanbatchloss))
-    logging.info("Normalised RMSE: {:05.2f}".format(normalised_rmse))
+    
     print("done")
 
 if (__name__ == "__main__"):
@@ -156,10 +166,6 @@ if (__name__ == "__main__"):
     data_dir = args.dataset
 
     X, Y = load_datafile(args.dataset, args.outputDim)
-    ymin = torch.from_numpy(Y.min(axis=0))
-    ymax = torch.from_numpy(Y.max(axis=0))
-    y_mean = ymax-ymin
-    y_mean=y_mean.item()
     # collecting indices for test and train sets
     train_idx, test_idx = train_test_split(list(range(X.shape[0])), test_size=args.test_trainsplit)
     
@@ -186,7 +192,10 @@ if (__name__ == "__main__"):
                       sampler=SubsetRandomSampler(test_idx))
     test_set2 = DataLoader(ds2, batch_size=batch_size,
                       sampler=SubsetRandomSampler(test_idx))
-    unseen_point = torch.from_numpy(unseen_point.astype(np.float32))
+    if torch.cuda.is_available():
+        unseen_point = torch.from_numpy(unseen_point.astype(np.float32)).cuda()
+    else :
+        unseen_point = torch.from_numpy(unseen_point.astype(np.float32))
 
     #X1_train,X2_train, Y_train, X1_test,X2_test, Y_test, unseen_point = load_housing(data_dir,False)     
     logging.info("Loading the datasets...")
@@ -209,6 +218,7 @@ if (__name__ == "__main__"):
 
     if torch.cuda.is_available():
         model.cuda()
+        model2.cuda()
 
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.SGD(chain(model.parameters(), model2.parameters()), lr=learningRate)
@@ -219,6 +229,6 @@ if (__name__ == "__main__"):
     logging.info("Starting training for {} epoch(s)".format(args.epochs))
     train_epoches(model,model2, train_set1,train_set2, unseen_point, epochs, criterion ,optimizer, restore_dir=None)
     logging.info("Starting testing for epoch(s)")    
-    test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer,y_mean, restore_dir=None)
+    test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore_dir=None)
 
-    baseline_linear(X, Y,y_mean ,epochs,batch_size,learningRate, criterion ,outputDim, args.test_trainsplit)
+    baseline_linear(X, Y,epochs,batch_size,learningRate, criterion ,outputDim, args.test_trainsplit)
