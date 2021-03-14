@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split
 
 
 
-def baseline_linear( X, Y,num_epochs,batch_size,learningRate, criterion ,output, test_size ):
+def baseline_linear( X, Y, y_max_min, num_epochs, batch_size, learningRate, criterion, output, test_size, device ):
     
     trainbase, testbase = train_test_split(list(range(X.shape[0])), test_size=test_size)
     ds = PrepareData(X, y=Y, scale_X=True)
@@ -33,8 +33,8 @@ def baseline_linear( X, Y,num_epochs,batch_size,learningRate, criterion ,output,
     sampler=SubsetRandomSampler(testbase))
 
     model = linearRegression(input_size, output)
-    if torch.cuda.is_available():
-        model.cuda()
+    
+    model.to(device)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=learningRate)
 
@@ -45,24 +45,15 @@ def baseline_linear( X, Y,num_epochs,batch_size,learningRate, criterion ,output,
         batch_losses = []
 
         for ix, (Xb, yb) in enumerate(train_set):
-            if torch.cuda.is_available():
-                _X = Variable(Xb).float().cuda()
-                _y = Variable(yb).float().cuda()
-            else:
-                _X = Variable(Xb).float()
-                _y = Variable(yb).float()
-               
+
+            _X = Variable(Xb).float().to(device)
+            _y = Variable(yb).float().to(device)
 
         #==========Forward pass===============
 
             preds = model(_X)
             lossbas = criterion(preds, _y)
-
-            if torch.cuda.is_available():
-                l2_reg = torch.tensor(0).cuda()
-            else:
-                l2_reg = torch.tensor(0.)
-
+            l2_reg = torch.tensor(0.).to(device)
             for param in chain(model.parameters()):
                 l2_reg += torch.norm(param)
             lossbase = lossbas+1 * l2_reg 
@@ -89,12 +80,10 @@ def baseline_linear( X, Y,num_epochs,batch_size,learningRate, criterion ,output,
     test_batch_loss = []
 
     for _X, _y in test_set:
-        if torch.cuda.is_available():
-            _X = Variable(_X).float().cuda()
-            _y = Variable(_y).float().cuda()
-        else:
-            _X = Variable(_X).float()
-            _y = Variable(_y).float()
+        
+        _X = Variable(_X).float().to(device)
+        _y = Variable(_y).float().to(device)
+
 
     #apply modeltest_loss
         test_preds = model(_X)
@@ -104,5 +93,6 @@ def baseline_linear( X, Y,num_epochs,batch_size,learningRate, criterion ,output,
         #print("Batch loss on test: {}".format(test_loss.item()))
         #loss_avg.update(test_loss.item())
     meanbatchloss_test = np.sqrt(np.mean(batch_losses)).round(3)
-    logging.info("baseline loss on test: {}".format(meanbatchloss_test)) 
+    normalised_rmse = meanbatchloss_test/y_max_min
+    logging.info("Normalised RMSE: {}".format(normalised_rmse)) 
 

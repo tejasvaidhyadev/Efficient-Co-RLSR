@@ -34,7 +34,7 @@ parser.add_argument('--outputDim', type=int, default=1, help="provides outputdim
 parser.add_argument('--learningRate',type=int,default=0.00005, help="define the learningrate")
 parser.add_argument("--epochs", type=int,default=100, help="Number of Epoches")
 parser.add_argument("--test_trainsplit", default=0.3)
-parser.add_argument("--batch_size",type=int, default=64)
+parser.add_argument("--batch_size",type=int, default=128)
 
 # for now we are not storing pretrained weigths
 def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, criterion ,optimizer, restore_dir=None):
@@ -47,26 +47,19 @@ def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, crit
         # get output from the model, given the inputs
         batch_losses = []
         for ix, ((Xb1, yb1), (Xb2, yb2)) in enumerate(zip(train_set1,train_set2)):
-            if torch.cuda.is_available():
-                _X1 = Variable(Xb1).float().cuda()
-                _y1 = Variable(yb1).float().cuda()
-                _X2 = Variable(Xb2).float().cuda()
-                _y2 = Variable(yb2).float().cuda()
-            else:
-                _X1 = Variable(Xb1).float()
-                _y1 = Variable(yb1).float()
-                _X2 = Variable(Xb2).float()
-                _y2 = Variable(yb2).float()
+            
+            _X1 = Variable(Xb1).float().to(device)
+            _y1 = Variable(yb1).float().to(device)
+            _X2 = Variable(Xb2).float().to(device)
+            _y2 = Variable(yb2).float().to(device)
             
             outputs1 = model(_X1)
             outputs2 = model2(_X2)
             # get loss for the predicted output
 
             loss1 = criterion(outputs1, _y1)+criterion(outputs2, _y2)
-            if torch.cuda.is_available():
-                l2_reg = torch.tensor(0.).cuda()
-            else:
-                l2_reg = torch.tensor(0.)
+            l2_reg = torch.tensor(0.).to(device)
+    
 
             for param in chain(model.parameters(), model2.parameters()):
                 l2_reg += torch.norm(param)
@@ -83,8 +76,8 @@ def train_epoches(model,model2, train_set1,train_set2,unknow_point, epochs, crit
             all_losses.append(loss.item())
 
         #print(batch_losses)
-        #meanbatchloss = np.sqrt(np.mean(batch_losses)).round(3)
-        #logging.info("co-RMS-loss: {:05.2f}".format(meanbatchloss))
+        meanbatchloss = np.sqrt(np.mean(batch_losses)).round(3)
+        logging.info("co-RMS-loss: {:05.2f}".format(meanbatchloss))
     logging.info("Training completed for printing loss uncomment 78 and 79(the above to line) linn in train.")
         #print('epoch {}, loss {}'.format(epoch, meanbatchloss/2))
         # to keep the loss fair divide by m
@@ -109,7 +102,7 @@ def load_datafile( dataset_path, multiReg = 1):
     return X,Y
 
 
-def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore_dir=None):
+def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer,normalised_rmse, restore_dir=None):
     
     model.eval()
     model2.eval()
@@ -117,17 +110,10 @@ def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore
 
     for (Xb1, yb1),(Xb2 , yb2) in zip(test_set1,test_set2):
 
-        if torch.cuda.is_available():
-            _X1 = Variable(Xb1).float().cuda()
-            _y1 = Variable(yb1).float().cuda()
-            _X2 = Variable(Xb2).float().cuda()
-            _y2 = Variable(yb2).float().cuda()
-        else:
-            _X1 = Variable(Xb1).float()
-            _y1 = Variable(yb1).float()
-            _X2 = Variable(Xb2).float()
-            _y2 = Variable(yb2).float()
-
+        _X1 = Variable(Xb1).float().to(device)
+        _y1 = Variable(yb1).float().to(device)
+        _X2 = Variable(Xb2).float().to(device)
+        _y2 = Variable(yb2).float().to(device)
 
         with torch.no_grad(): # we don't need gradients in the testing phase
             predicted = model(_X1)
@@ -140,9 +126,10 @@ def test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore
         all_losses.append(total_error.item())
     
     meanbatchloss = np.sqrt(np.mean(all_losses)).round(3)
+    normalised_rmse = np.sqrt(np.mean(all_losses)).round(3)/ y_max_min
     
     #print(total_error)
-    logging.info("combine-rms on test set: {:05.2f}".format(meanbatchloss))
+    logging.info("Normalisedd RMSE (SSL): {:05.2f}".format(normalised_rmse))
     
     print("done")
 
@@ -154,6 +141,8 @@ if (__name__ == "__main__"):
     #TODO: Load the parameters from json file
     
     # Use GPUs if available
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     # Set the random seed for reproducible experiments
     random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -166,6 +155,9 @@ if (__name__ == "__main__"):
     data_dir = args.dataset
 
     X, Y = load_datafile(args.dataset, args.outputDim)
+    ymin = torch.from_numpy(Y.min(axis=0))
+    ymax = torch.from_numpy(Y.max(axis=0))
+    y_max_min = (ymax-ymin).item()
     # collecting indices for test and train sets
     train_idx, test_idx = train_test_split(list(range(X.shape[0])), test_size=args.test_trainsplit)
     
@@ -188,14 +180,13 @@ if (__name__ == "__main__"):
                        sampler=SubsetRandomSampler(train_idx))
     train_set2 = DataLoader(ds2, batch_size=batch_size,
                       sampler=SubsetRandomSampler(train_idx))
+
     test_set1 = DataLoader(ds1, batch_size=batch_size,
                       sampler=SubsetRandomSampler(test_idx))
     test_set2 = DataLoader(ds2, batch_size=batch_size,
                       sampler=SubsetRandomSampler(test_idx))
-    if torch.cuda.is_available():
-        unseen_point = torch.from_numpy(unseen_point.astype(np.float32)).cuda()
-    else :
-        unseen_point = torch.from_numpy(unseen_point.astype(np.float32))
+
+    unseen_point = torch.from_numpy(unseen_point.astype(np.float32)).to(device)
 
     #X1_train,X2_train, Y_train, X1_test,X2_test, Y_test, unseen_point = load_housing(data_dir,False)     
     logging.info("Loading the datasets...")
@@ -203,7 +194,7 @@ if (__name__ == "__main__"):
     logging.info("model...")
 
     # Prepare model
-    #model.to(params.device)
+    #modeDataParallell.to(params.device)
     inputDim1 = len(X1[1])        # takes variable 'x'
     inputDim2 = len(X2[1]) 
     outputDim = args.outputDim      # takes variable 'y'
@@ -215,10 +206,15 @@ if (__name__ == "__main__"):
     # need to make parametric to input other kernals
     model = linearRegression(inputDim1, outputDim)
     model2= linearRegression(inputDim2, outputDim)
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        model = nn.DataParallel(model)
+        model2 = nn.DataParallel(model2)
 
-    if torch.cuda.is_available():
-        model.cuda()
-        model2.cuda()
+        model.to(device)
+        model2.to(device)
+    
 
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.SGD(chain(model.parameters(), model2.parameters()), lr=learningRate)
@@ -229,6 +225,6 @@ if (__name__ == "__main__"):
     logging.info("Starting training for {} epoch(s)".format(args.epochs))
     train_epoches(model,model2, train_set1,train_set2, unseen_point, epochs, criterion ,optimizer, restore_dir=None)
     logging.info("Starting testing for epoch(s)")    
-    test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, restore_dir=None)
+    test_epochs(model,model2, test_set1,test_set2, criterion ,optimizer, y_max_min, restore_dir=None)
 
-    baseline_linear(X, Y,epochs,batch_size,learningRate, criterion ,outputDim, args.test_trainsplit)
+    baseline_linear(X, Y, y_max_min, epochs, batch_size, learningRate, criterion, outputDim, args.test_trainsplit, device)
