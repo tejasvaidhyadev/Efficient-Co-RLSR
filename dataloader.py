@@ -10,6 +10,8 @@ class PrepareData(Dataset):
             if scale_X:
                 X = StandardScaler().fit_transform(X)
                 self.X = torch.from_numpy(X)
+            else:
+                self.X = torch.from_numpy(X)
         if not torch.is_tensor(y):
             self.y = torch.from_numpy(y)
 
