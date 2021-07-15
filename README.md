@@ -1,5 +1,6 @@
 # Co-Regularised Least Squares Regression
-This Repo Contains python implementation of paper Efficient [Co-Regularised Least Squares Regression](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.68.7014&rep=rep1&type=pdf)  
+This Repo Contains python implementation of paper [Efficient Co-Regularised Least Squares Regression](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.68.7014&rep=rep1&type=pdf)  - by Ulf Brefeld, Thomas G¨artner, Tobias Scheffer and Stefan Wrobel
+
 ### Instructions
 Run the below line
 ```
