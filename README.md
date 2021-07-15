@@ -34,5 +34,6 @@ Training of Baseline successful. To print losses uncomment the line 67 and 68
 Baseline testing Starting
 baseline loss on test: 89.166
 ```
-### LISENCE
-- MIT
+### Miscellanous
+- **Lisence**:  MIT
+- You may contact me by opening an issue on this repo. Please allow 2-3 days of time to address the issue.
