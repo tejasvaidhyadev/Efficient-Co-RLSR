@@ -1,26 +1,22 @@
-# Efficient-Co-RLSR
-Contains  implementation of  Efficent Co-RLSR  
-Paper: [link](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.68.7014&rep=rep1&type=pdf)  
-Processed dataset provided at: ./dataset/  
-
-### Training 
+# Co-Regularised Least Squares Regression
+This Repo Contains python implementation of paper Efficient [Co-Regularised Least Squares Regression](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.68.7014&rep=rep1&type=pdf)  
+### Instructions
 Run the below line
 ```
 python train.py --dataset <path_to_dataset> --epochs <no of epochs>
 ```
---outputDim is use to specify the number of output dimension
+```--outputDim``` is use to specify the number of output dimension
 
-The model will take last ```outputDim``` as target labels
+- The model will take last ```outputDim``` column of dataset as target labels
 
 ### Baseline 
-Implements the RSE (also known as Ridge regression)
+For comparison, we are implementing RSE as baseline (also known as Ridge regression)
 
 ### Example
 Step1: keep the processed dataset file at ./dataset with last column corresponds to target label  
 
 step2:
 ```
-
 $ python train.py --dataset ./dataset/pollution.data.txt --epochs 9000 --batch_size 16 --outputDim 1
 
 split of attribute at
@@ -38,10 +34,5 @@ Training of Baseline successful. To print losses uncomment the line 67 and 68
 Baseline testing Starting
 baseline loss on test: 89.166
 ```
-
-### Results
-Results: [link](https://docs.google.com/document/d/17BtTTLGRWsAMNoZkYNj13UZ1iDSJ96VNql0TteO5lFA/edit?usp=sharing)
-
-### TODO
-
-- [ ] Multi-GPU   
+### LISENCE
+- MIT
